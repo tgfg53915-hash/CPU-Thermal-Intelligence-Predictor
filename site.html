@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPU Thermal Intelligence System</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-color: #3b82f6;
+            --text-color: #f8fafc;
+            --danger: #ef4444;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-content: center;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+        h2 {
+            text-align: center;
+            color: var(--accent-color);
+            margin-bottom: 25px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.95rem;
+            color: #cbd5e1;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #475569;
+            background: #334155;
+            color: #fff;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-color);
+            border: none;
+            color: white;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: 0.3s;
+            margin-top: 15px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        #resultBox {
+            margin-top: 25px;
+            padding: 15px;
+            border-radius: 6px;
+            background: #0f172a;
+            display: none;
+            text-align: center;
+            border-left: 5px solid var(--accent-color);
+        }
+        .danger-status {
+            color: var(--danger);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>💻 CPU Temperature Predictor</h2>
+    <form id="predictionForm">
+        <div class="form-group">
+            <label>CPU Usage (%)</label>
+            <input type="number" id="CPU_Usage" step="any" required placeholder="e.g. 45.5">
+        </div>
+        <div class="form-group">
+            <label>Memory Usage (%)</label>
+            <input type="number" id="Memory_Usage" step="any" required placeholder="e.g. 60.2">
+        </div>
+        <div class="form-group">
+            <label>Disk Usage (%)</label>
+            <input type="number" id="Disk_Usage" step="any" required placeholder="e.g. 12.7">
+        </div>
+        <div class="form-group">
+            <label>Process Count</label>
+            <input type="number" id="Process_Count" required placeholder="e.g. 120">
+        </div>
+        <div class="form-group">
+            <label>Thread Count</label>
+            <input type="number" id="Thread_Count" required placeholder="e.g. 1500">
+        </div>
+        <div class="form-group">
+            <label>GPU Temperature (°C)</label>
+            <input type="number" id="GPU_Temperature" step="any" required placeholder="e.g. 55.0">
+        </div>
+        <button type="submit">Predict CPU Temperature</button>
+    </form>
+
+    <div id="resultBox">
+        <h3>Prediction Result:</h3>
+        <p id="tempResult" style="font-size: 1.5rem; margin: 5px 0; font-weight: bold;"></p>
+        <p id="statusResult"></p>
+    </div>
+</div>
+
+<script>
+    document.getElementById('predictionForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // تجميع البيانات من الفورم
+        const payload = {
+            CPU_Usage: document.getElementById('CPU_Usage').value,
+            Memory_Usage: document.getElementById('Memory_Usage').value,
+            Disk_Usage: document.getElementById('Disk_Usage').value,
+            Process_Count: document.getElementById('Process_Count').value,
+            Thread_Count: document.getElementById('Thread_Count').value,
+            GPU_Temperature: document.getElementById('GPU_Temperature').value
+        };
+
+        try {
+            // إرسال البيانات إلى سيرفر Flask
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            
+            // عرض النتيجة
+            const resultBox = document.getElementById('resultBox');
+            const tempResult = document.getElementById('tempResult');
+            const statusResult = document.getElementById('statusResult');
+            
+            resultBox.style.display = 'block';
+            
+            if(response.ok) {
+                tempResult.innerText = `${result.predicted_temperature} °C`;
+                statusResult.innerText = `Status: ${result.status}`;
+                
+                // تلوين الحواف بناء على الخطورة
+                if(result.predicted_temperature > 85) {
+                    resultBox.style.borderLeftColor = '#ef4444';
+                } else if(result.predicted_temperature > 70) {
+                    resultBox.style.borderLeftColor = '#f59e0b';
+                } else {
+                    resultBox.style.borderLeftColor = '#10b981';
+                }
+            } else {
+                tempResult.innerText = "Error";
+                statusResult.innerText = result.error;
+            }
+        } catch (error) {
+            alert('Could not connect to Flask Server. Make sure app.py is running!');
+        }
+    });
+</script>
+
+</body>
+</html>
